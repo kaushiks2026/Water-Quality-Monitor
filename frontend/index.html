@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automated Water Quality Monitoring System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js for responsive historical graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1>AquaWatch MDP</h1>
+          <p class="subtitle">Automated Water Quality Monitoring & Early-Warning System</p>
+        </div>
+      </div>
+
+      <div class="nav-controls">
+        <div class="provenance-badge" id="source-badge">
+          <span class="badge-dot"></span>
+          <span id="source-text">Awaiting Telemetry...</span>
+        </div>
+        <button id="btn-refresh" class="btn-secondary" title="Manually fetch latest data">
+          <svg class="spin-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="content-container">
+      
+      <!-- System Overview Banner: Risk Status & Device Connection -->
+      <section class="status-banner" id="status-banner">
+        <div class="risk-indicator">
+          <div class="pulse-ring" id="risk-pulse"></div>
+          <div>
+            <span class="banner-eyebrow">Water Quality Safety Status</span>
+            <h2 id="risk-status-text">INITIALIZING</h2>
+            <p id="risk-summary-text" class="banner-desc">Connecting to backend API...</p>
+          </div>
+        </div>
+
+        <div class="system-meta-panel">
+          <div class="meta-item">
+            <span class="meta-label">Active Node ID</span>
+            <span class="meta-value" id="device-id-val">--</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Node Type</span>
+            <span class="meta-value" id="node-type-val">--</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Last Transmission</span>
+            <span class="meta-value" id="last-updated-val">--</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">API Health</span>
+            <span class="meta-value status-good" id="api-health-val">Checking...</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Key Sensor Parameter Cards (4 Parameters) -->
+      <section class="metrics-grid">
+        <!-- 1. pH -->
+        <article class="metric-card" id="card-ph">
+          <div class="card-header">
+            <span class="param-title">pH (Acidity / Alkalinity)</span>
+            <span class="param-badge" id="badge-ph">--</span>
+          </div>
+          <div class="card-body">
+            <div class="metric-val-wrap">
+              <span class="metric-val" id="val-ph">--</span>
+              <span class="metric-unit">pH</span>
+            </div>
+            <div class="gauge-bar">
+              <div class="gauge-fill" id="fill-ph" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <span class="ref-standard">Ref: BIS 10500:2012 (6.5 – 8.5)</span>
+          </div>
+        </article>
+
+        <!-- 2. Turbidity -->
+        <article class="metric-card" id="card-turbidity">
+          <div class="card-header">
+            <span class="param-title">Turbidity (Water Clarity)</span>
+            <span class="param-badge" id="badge-turbidity">--</span>
+          </div>
+          <div class="card-body">
+            <div class="metric-val-wrap">
+              <span class="metric-val" id="val-turbidity">--</span>
+              <span class="metric-unit">NTU</span>
+            </div>
+            <div class="gauge-bar">
+              <div class="gauge-fill" id="fill-turbidity" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <span class="ref-standard">Desirable: &le; 1.0 | Max: &le; 5.0 NTU</span>
+          </div>
+        </article>
+
+        <!-- 3. Temperature -->
+        <article class="metric-card" id="card-temp">
+          <div class="card-header">
+            <span class="param-title">Water Temperature</span>
+            <span class="param-badge" id="badge-temp">--</span>
+          </div>
+          <div class="card-body">
+            <div class="metric-val-wrap">
+              <span class="metric-val" id="val-temp">--</span>
+              <span class="metric-unit">&deg;C</span>
+            </div>
+            <div class="gauge-bar">
+              <div class="gauge-fill" id="fill-temp" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <span class="ref-standard">Ambient Surface: 15.0 – 35.0 &deg;C</span>
+          </div>
+        </article>
+
+        <!-- 4. Dissolved Oxygen (DO) -->
+        <article class="metric-card" id="card-do">
+          <div class="card-header">
+            <span class="param-title">Dissolved Oxygen (DO)</span>
+            <span class="param-badge" id="badge-do">Uninstalled</span>
+          </div>
+          <div class="card-body">
+            <div class="metric-val-wrap">
+              <span class="metric-val" id="val-do">N/A</span>
+              <span class="metric-unit">mg/L</span>
+            </div>
+            <div class="gauge-bar">
+              <div class="gauge-fill" id="fill-do" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <span class="ref-standard">Healthy Aquatic: &ge; 4.0 – 6.0 mg/L</span>
+          </div>
+        </article>
+      </section>
+
+      <!-- Charts & Alerts Dual Panel Section -->
+      <section class="analytics-row">
+        <!-- Historical Trend Chart -->
+        <div class="panel-box chart-panel">
+          <div class="panel-header">
+            <div>
+              <h3>Real-Time Telemetry Trends</h3>
+              <p class="panel-sub">Historical sensor measurements from local SQLite database</p>
+            </div>
+            <div class="chart-controls">
+              <span class="badge-tag">Recent 30 Samples</span>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="historicalChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Real-Time Alerts Feed -->
+        <div class="panel-box alerts-panel">
+          <div class="panel-header">
+            <div>
+              <h3>Safety Alerts & Violations</h3>
+              <p class="panel-sub">Triggered by rule-based reference criteria</p>
+            </div>
+            <span class="alert-count-pill" id="alert-count">0</span>
+          </div>
+          <div class="alerts-list" id="alerts-container">
+            <div class="empty-state">No active threshold alerts. Water parameters within range.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Educational Transparency & Technical Disclosure Box -->
+      <section class="disclosure-box">
+        <div class="disclosure-header">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <h4>Multidisciplinary Project (MDP) Scientific & Safety Disclosure</h4>
+        </div>
+        <p>
+          This automated monitoring station measures selected physical and electrochemical parameters (pH, Turbidity, Temperature, Dissolved Oxygen) as an early warning for sudden contamination or environmental shifts. <strong>These measurements alone do not prove water potability</strong>, as microbial pathogens (e.g. <em>E. coli</em>) and dissolved heavy metals require certified laboratory assays. Documented reference standards are based on <strong>BIS 10500:2012</strong> and <strong>WHO Drinking Water Guidelines</strong>.
+        </p>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
